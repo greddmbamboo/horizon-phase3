@@ -17,7 +17,7 @@ export function EmailEditor({ emailId, body, claims, here, action }: {
   const checks = [
     ...claims.map((c) => ({ label: text.includes(c.span) ? c.title : 'No unsupported claims', ok: !text.includes(c.span) })),
     { label: `${words} / 149 words`, ok: words <= 149 },
-    { label: asks === 1 ? 'One clear ask' : asks === 0 ? 'No clear ask' : 'More than one ask', ok: asks === 1 },
+    { label: 'One clear ask', ok: asks === 1 },
   ];
   return (
     <form action={action} className="flex flex-col gap-3">

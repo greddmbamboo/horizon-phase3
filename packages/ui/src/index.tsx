@@ -180,7 +180,8 @@ export function ErrorState({ title, children, action }: { title: string; childre
 }
 
 export function Skeleton({ className, style }: { className?: string; style?: CSSProperties }) {
-  return <div className={cn('hz-skeleton', className)} style={style} />;
+  // A span, so it can stand in for text inside a <p> (e.g. a page subtitle while loading).
+  return <span className={cn('hz-skeleton block', className)} style={style} />;
 }
 
 /** Loading placeholders matching the Figma loading frames: a row of stat cards and a table. */

@@ -48,7 +48,6 @@ export default async function RelationshipSummary({ searchParams }: { searchPara
       <PageHeader title="Outreach" subtitle={`${s.engagement.name} engagement · as of ${fmtDayTime(s.now)} · inbox last checked ${s.sending.lastChecked}`}
         right={<Link className={btnClass('secondary')} href={`${HERE}?customize=1`} scroll={false}>Customize</Link>} />
       <Tabs items={[{ label: 'Companies', href: '/outreach' }, { label: 'Relationship Summary', href: HERE, active: true }]} />
-      <p className="text-xs text-muted">{prefs.range === 'this_month' ? `Emails first sent this month (${new Date(s.now).toLocaleDateString('en-GB', { month: 'long', year: 'numeric', timeZone: 'America/Denver' })})` : 'All time'}</p>
       {perf.length > 0 && (<><h2 className="text-[15px] font-semibold">Email Performance</h2><div className="grid gap-4 md:grid-cols-3">{perf}</div></>)}
       {rel.length > 0 && (<><h2 className="text-[15px] font-semibold">Relationships · As of Today</h2><div className="grid grid-cols-2 gap-4 md:grid-cols-4">{rel}</div></>)}
       {out.length === 0 ? (

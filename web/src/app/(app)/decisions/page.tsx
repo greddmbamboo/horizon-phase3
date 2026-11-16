@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { getState } from '@horizon/outreach/data';
 import { fmtDay, type Company } from '@horizon/outreach';
 import { removeFromClientView } from '@horizon/outreach/server-actions';
-import { Actions, Field, PageHeader, Pill, PersonCell, Table, StatCard, btnClass, inputClass } from '@horizon/ui';
+import { Actions, PageHeader, Pill, PersonCell, Table, StatCard, btnClass, inputClass } from '@horizon/ui';
 import { Modal } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
 
@@ -45,11 +45,12 @@ export default async function Decisions({ searchParams }: { searchParams: Promis
       </Table>
 
       {removing && (
-        <Modal title="Remove From Client View?" subtitle={removing.name} closeHref={HERE} width={440}>
+        <Modal title="Remove From Client View?" closeHref={HERE} width={440}>
           <form action={removeFromClientView} className="flex flex-col gap-4 pb-2">
             <input type="hidden" name="companyId" value={removing.id} /><input type="hidden" name="redirect" value={HERE} />
             <p className="text-sm text-muted">The client loses access to this company and all unsent outreach is blocked. History is kept for audit.</p>
-            <Field label="Reason (required)" hint="Internal. The client doesn’t see it."><textarea name="reason" required rows={3} className={inputClass} placeholder="Internal reason…" /></Field>
+            <label className="sr-only" htmlFor="remove-reason">Internal reason</label>
+            <textarea id="remove-reason" name="reason" required rows={3} className={inputClass} placeholder="Internal reason…" />
             <Actions><Link href={HERE} className={btnClass('secondary')}>Cancel</Link><SubmitButton variant="danger">Remove Company</SubmitButton></Actions>
           </form>
         </Modal>

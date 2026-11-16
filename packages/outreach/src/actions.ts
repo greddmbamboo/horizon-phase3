@@ -164,7 +164,7 @@ function attentionFor(s: HorizonState, ct: Contact): Strategy['attention'] {
   if (!ct.email) out.push({ id: uid('att'), kind: 'email', contactId: ct.id, text: `${ct.name} has no email address yet.`, resolved: false });
   const other = overlapsOf(s, ct)[0];
   if (other && !ct.overlap) out.push({ id: uid('att'), kind: 'overlap', contactId: ct.id, text: `${ct.name} also appears under ${companyById(s, other.companyId)!.name} in this engagement.`, resolved: false });
-  if (!ct.location) out.push({ id: uid('att'), kind: 'location', contactId: ct.id, text: `${ct.name}’s location is unknown. Outreach only goes to people in the US.`, resolved: false });
+  if (!ct.location) out.push({ id: uid('att'), kind: 'location', contactId: ct.id, text: `${ct.name}’s location unknown. US recipients only.`, resolved: false });
   return out;
 }
 

@@ -35,7 +35,7 @@ export default async function StrategyReview({ params, searchParams }: { params:
     : st.status === 'with_client' ? <Pill tone="In Progress">With client · v{st.version}</Pill>
     : st.status === 'changes_requested' ? <Pill tone="Needs Action">Changes requested</Pill>
     : st.status === 'accepted' ? <Pill tone="Done">Accepted {fmtDay(st.acceptedAt)}</Pill>
-    : st.status === 'generating' ? <Pill tone="In Progress">Regenerating</Pill> : <Pill tone="Inactive">{st.status}</Pill>;
+    : st.status === 'generating' ? null : <Pill tone="Inactive">{st.status}</Pill>;
 
   return (
     <>

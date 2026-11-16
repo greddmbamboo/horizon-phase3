@@ -48,8 +48,7 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card className="flex flex-col gap-4 p-6">
           {!cleared && !editing && (
-            <Actions start={<span className="text-xs text-muted">Version {e.versions.length} · {lastVersion.note}</span>}>
-              {canUndo && <form action={undoEmailVersion}><input type="hidden" name="emailId" value={e.id} /><input type="hidden" name="redirect" value={here} /><SubmitButton variant="link" pendingLabel="Undoing…">Undo</SubmitButton></form>}
+            <Actions>
               <Link className={btnClass('link')} href={`${here}?dialog=rewrite`} scroll={false}>Rewrite the Whole Email</Link>
               <Link className={btnClass('secondary')} href={`${here}?mode=edit`} scroll={false}>Edit</Link>
             </Actions>
@@ -93,6 +92,9 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
                   <span className="text-[13px] font-semibold">{f.title}</span>
                   {!f.resolved && <span className="text-xs text-muted">{f.why}</span>}
                   {f.resolved && <span className="text-xs text-muted">{RES_LABEL[f.resolution ?? '']} · {fmtDayTime(f.resolvedAt)}{f.resolutionNote ? ` · “${f.resolutionNote}”` : ''}</span>}
+                  {f.resolved && canUndo && (f.resolution === 'rewritten' || f.resolution === 'edited') && (
+                    <form action={undoEmailVersion}><input type="hidden" name="emailId" value={e.id} /><input type="hidden" name="redirect" value={here} /><SubmitButton variant="link" className="text-xs" pendingLabel="Undoing…">Undo</SubmitButton></form>
+                  )}
                 </div>
               </div>
               {!f.resolved && !cleared && (
