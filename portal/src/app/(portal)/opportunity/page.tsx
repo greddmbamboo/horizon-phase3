@@ -1,12 +1,13 @@
 import Link from 'next/link';
-import { getState } from '@horizon/outreach/data';
-import { fmtDay } from '@horizon/outreach';
+import { getState, simulate } from '@horizon/outreach/data';
+import { clientCompanies, fmtDay } from '@horizon/outreach';
 import { Card, PageHeader, StatCard, Table, btnClass } from '@horizon/ui';
 import { DecisionPill } from '@/components/bits';
 
-export default async function Opportunity() {
+export default async function Opportunity({ searchParams }: { searchParams: Promise<{ simulate?: string }> }) {
+  await simulate(await searchParams);
   const s = await getState();
-  const cs = s.companies;
+  const cs = clientCompanies(s);
   const count = (d: string) => cs.filter((c) => c.decision === d).length;
   return (
     <>

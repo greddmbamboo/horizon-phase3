@@ -1,15 +1,16 @@
 import Link from 'next/link';
 import { getState } from '@horizon/outreach/data';
-import { fmtDay, fmtDayTime, nextStepFor } from '@horizon/outreach';
+import { clientCompanies, fmtDay, fmtDayTime, nextStepFor } from '@horizon/outreach';
 import { markNotificationsRead } from '@horizon/outreach/server-actions';
 import { Card, PageHeader, Pill, StatCard, btnClass, cn } from '@horizon/ui';
 import { SubmitButton } from '@horizon/ui/client';
 
 export default async function Dashboard() {
   const s = await getState();
-  const accepted = s.companies.filter((c) => c.decision === 'accepted');
+  const accepted = clientCompanies(s).filter((c) => c.decision === 'accepted');
   const attention = [
-    ...s.companies.filter((c) => c.decision === 'waiting').map((c) => ({ title: 'Company waiting on your decision', sub: c.name, tone: 'Needs Action' as const, label: 'Waiting on you', href: `/companies/${c.slug}`, cta: 'Review' })),
+    ...clientCompanies(s).filter((c) => c.decision === 'waiting').map((c) => ({ title: 'Company waiting on your decision', sub: c.name, tone: 'Needs Action' as const, label: 'Waiting on you', href: `/companies/${c.slug}`, cta: 'Review' })),
+    ...accepted.filter((c) => c.pendingUpdate).map((c) => ({ title: 'Updated company to review', sub: c.name, tone: 'Needs Action' as const, label: 'Update waiting on you', href: `/companies/${c.slug}`, cta: 'Review' })),
     ...accepted.map((c) => ({ c, step: nextStepFor(s, c) })).filter((x) => x.step.tone === 'Needs Action').map(({ c, step }) => ({ title: step.label.startsWith('Review &') ? 'Emails to review' : step.label === 'Review strategy' ? 'Outreach plan ready' : 'New reply', sub: c.name, tone: step.tone, label: step.label, href: step.href, cta: 'Open' })),
   ];
   const notes = s.notifications.filter((n) => n.side === 'client').slice(0, 8);

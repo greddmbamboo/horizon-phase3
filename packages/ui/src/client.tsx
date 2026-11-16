@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useFormStatus } from 'react-dom';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { FlaskConical, X } from 'lucide-react';
-import { btnClass } from './index';
+import { ErrorState, btnClass } from './index';
 import type { ComponentProps, ReactNode } from 'react';
 
 /**
@@ -81,5 +81,29 @@ export function DemoPanel({ children, otherApp }: { children: ReactNode; otherAp
         <FlaskConical size={14} /> Demo
       </button>
     </div>
+  );
+}
+
+/** Runs a server action once, after a short delay, then refreshes (e.g. finishing a regenerate). */
+export function AutoRun({ id, action, delay = 2500 }: { id: string; action: (id: string) => Promise<void>; delay?: number }) {
+  const router = useRouter();
+  useEffect(() => {
+    const t = setTimeout(async () => { await action(id); router.refresh(); }, delay);
+    return () => clearTimeout(t);
+  }, [id, action, delay, router]);
+  return null;
+}
+
+/**
+ * Body of a route's error.tsx. "Try Again" reloads the page without the prototype's
+ * ?simulate=error flag, then re-renders the segment.
+ */
+export function RouteError({ title, children, reset }: { title: string; children?: ReactNode; reset: () => void }) {
+  const router = useRouter();
+  const path = usePathname();
+  return (
+    <ErrorState title={title} action={<button className={btnClass('secondary')} onClick={() => { router.replace(path); router.refresh(); reset(); }}>Try Again</button>}>
+      {children}
+    </ErrorState>
   );
 }

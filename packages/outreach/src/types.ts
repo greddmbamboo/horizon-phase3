@@ -28,7 +28,7 @@ export interface Engagement {
   mailboxDomain: string;
 }
 
-export type CompanyDecision = 'waiting' | 'accepted' | 'rejected';
+export type CompanyDecision = 'waiting' | 'accepted' | 'rejected' | 'withdrawn';
 
 export interface Company {
   id: string;
@@ -42,6 +42,12 @@ export interface Company {
   decision: CompanyDecision;
   decidedAt?: ISODate;
   rejectReason?: string;
+  /** A newer version shared after the client accepted (Phase 2 re-share). Waits for the client's decision. */
+  pendingUpdate?: { version: number; sharedAt: ISODate; summary?: string };
+  updateRejectedReason?: string;
+  /** Operator removed it from the client's view. The client loses access; history is kept for audit. */
+  removedAt?: ISODate;
+  removedReason?: string;
   why: string;
   financials: { label: string; value: string; note: string }[];
   assessments: { label: string; value: string; note: string }[];
@@ -57,6 +63,12 @@ export interface Contact {
   location?: string;
   decisionMaker: boolean;
   bio: string;
+  /** Where the location came from (outreach only goes to people in the US). */
+  locationEvidence?: { source: string; url?: string };
+  /** In the accepted People record, but not put in a strategy automatically. Consultants can add them. */
+  manualOnly?: boolean;
+  /** How outreach treats someone who is a contact for more than one company. */
+  overlap?: 'this_only' | 'both' | 'neither';
 }
 
 export type StrategyStatus =
@@ -77,6 +89,8 @@ export interface StrategyRow {
   reason: string;
   /** First-contact emails are written for rows in wave 1 when the strategy is accepted. */
   wave: 1 | 2;
+  /** Changed by a consultant. Regenerating keeps edited rows. */
+  edited?: boolean;
 }
 
 export interface Strategy {
@@ -93,7 +107,7 @@ export interface Strategy {
   feedbackAt?: ISODate;
   changeSummary?: string;
   privateNotes: string;
-  attention: { id: string; text: string; resolved: boolean }[];
+  attention: { id: string; text: string; resolved: boolean; kind?: 'email' | 'overlap' | 'location'; contactId?: string }[];
 }
 
 export type FlagType = 'unsupported_claim' | 'no_fact';
@@ -145,6 +159,29 @@ export interface Email {
   versions: EmailVersion[];
   sentAt?: ISODate;
   failReason?: string;
+}
+
+export interface PrivateNote {
+  id: string;
+  contactId: string;
+  text: string;
+  at: ISODate;
+  by: string;
+}
+
+export interface Insight {
+  id: string;
+  companyId: string;
+  title: string;
+  body: string;
+  at: ISODate;
+  by: string;
+}
+
+export interface SummaryPrefs {
+  show: { sent: boolean; replyRate: boolean; optOut: boolean; ready: boolean; sentiment: boolean; readinessColumn: boolean };
+  groupBy: 'review_group' | 'none';
+  range: 'this_month' | 'all_time';
 }
 
 export interface Batch {
@@ -231,6 +268,8 @@ export interface Sending {
   mailbox: 'connected' | 'disconnected';
   lastChecked: string;
   sendingHours: string;
+  /** Prototype only: addresses that will bounce on the next send (set from the demo panel). */
+  bouncing?: string[];
 }
 
 export interface Activity {
@@ -259,4 +298,7 @@ export interface HorizonState {
   settings: Settings;
   sending: Sending;
   activity: Activity[];
+  privateNotes?: PrivateNote[];
+  insights?: Insight[];
+  summaryPrefs?: SummaryPrefs;
 }

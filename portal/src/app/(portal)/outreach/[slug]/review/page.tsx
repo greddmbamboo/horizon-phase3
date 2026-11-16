@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getState } from '@horizon/outreach/data';
+import { getState, simulate } from '@horizon/outreach/data';
 import { batchesFor, companyBySlug, contactById, fmtDayTime, openBatch, type HorizonState } from '@horizon/outreach';
 import { approveBatch, editEmail, markReviewed, requestEmailRewrite } from '@horizon/outreach/server-actions';
 import { Actions, Banner, EmptyState, Field, PersonCell, Pill, Table, btnClass, inputClass } from '@horizon/ui';
@@ -16,9 +16,10 @@ function Progress({ done, total }: { done: number; total: number }) {
   );
 }
 
-export default async function ReviewTab({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ email?: string; mode?: string; sent?: string }> }) {
+export default async function ReviewTab({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ email?: string; mode?: string; sent?: string; simulate?: string }> }) {
   const { slug } = await params;
   const q = await searchParams;
+  await simulate(q);
   const s = await getState();
   const c = companyBySlug(s, slug)!;
   const here = `/outreach/${slug}/review`;
@@ -28,10 +29,21 @@ export default async function ReviewTab({ params, searchParams }: { params: Prom
   const sentBatches = batchesFor(s, c.id).filter((b) => b.status === 'sent');
   const preparing = batchesFor(s, c.id).find((b) => b.status === 'preparing');
   const lastSent = sentBatches[0];
+  const lastEmails = lastSent ? s.emails.filter((e) => e.batchId === lastSent.id) : [];
+  const bounced = lastEmails.filter((e) => e.status === 'failed' && e.failReason?.includes('rejected the email'));
+  const delivered = lastEmails.filter((e) => e.status === 'sent');
+  const firstName = (id: string) => contactById(s, id)!.name.split(' ')[0];
 
   return (
     <>
-      {q.sent && lastSent && (
+      {bounced.length > 0 && (
+        <Banner tone="fail" title={`${bounced.length} of ${lastEmails.length} emails couldn’t be sent`}>
+          {bounced.map((e) => e.failReason).join(' ')}{' '}
+          {delivered.length > 0 && `${delivered.map((e) => `${firstName(e.contactId)}’s`).join(' and ')} email${delivered.length > 1 ? 's were' : ' was'} sent. `}
+          Your consultant will look for another address and send it back to you to review.
+        </Banner>
+      )}
+      {q.sent && lastSent && bounced.length === 0 && (
         <Banner tone="success" title={`${s.emails.filter((e) => e.batchId === lastSent.id).length} Emails Sent`}
           actions={<Link className={btnClass('link')} href={`/outreach/${slug}/conversations`}>Go to Conversations ›</Link>}>
           {fmtDayTime(lastSent.sentAt)} · approved and sent by Rachel Kim. Replies will appear in Conversations. You’ll get a notification when someone responds.

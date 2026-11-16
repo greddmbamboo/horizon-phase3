@@ -9,9 +9,16 @@ export function uid(prefix: string) {
 
 export const companyById = (s: HorizonState, id: string) => s.companies.find((c) => c.id === id);
 export const companyBySlug = (s: HorizonState, slug: string) => s.companies.find((c) => c.slug === slug);
+/** Companies the client can see: everything shared, minus those a consultant removed from the client's view. */
+export const clientCompanies = (s: HorizonState) => s.companies.filter((c) => !c.removedAt);
 export const contactById = (s: HorizonState, id: string) => s.contacts.find((c) => c.id === id);
 export const personById = (s: HorizonState, id?: string) => s.people.find((p) => p.id === id);
 export const contactsFor = (s: HorizonState, companyId: string) => s.contacts.filter((c) => c.companyId === companyId);
+/** People outreach covers: everyone not manual-only, plus manual-only people a consultant added or who are already in a thread. */
+export function outreachContacts(s: HorizonState, companyId: string) {
+  const st = strategyForCompany(s, companyId);
+  return contactsFor(s, companyId).filter((c) => !c.manualOnly || st?.rows.some((r) => r.contactId === c.id) || s.messages.some((m) => m.contactId === c.id));
+}
 
 /** The live (newest) strategy for a company. */
 export function strategyForCompany(s: HorizonState, companyId: string): Strategy | undefined {

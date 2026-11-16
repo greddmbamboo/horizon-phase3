@@ -2,18 +2,18 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getState } from '@horizon/outreach/data';
 import { companyBySlug, contactsFor, fmtDay, nextStepFor, threadFor } from '@horizon/outreach';
-import { acceptCompany, rejectCompany } from '@horizon/outreach/server-actions';
+import { acceptAgain, acceptCompany, acceptUpdate, rejectCompany, rejectUpdate, withdrawAcceptance } from '@horizon/outreach/server-actions';
 import { Actions, Banner, Card, Field, PageHeader, Pill, btnClass, inputClass } from '@horizon/ui';
 import { Modal } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
 import { DecisionPill } from '@/components/bits';
 
-export default async function CompanyPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ accepted?: string; reject?: string }> }) {
+export default async function CompanyPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ accepted?: string; reject?: string; dialog?: string }> }) {
   const { slug } = await params;
   const q = await searchParams;
   const s = await getState();
   const c = companyBySlug(s, slug);
-  if (!c) notFound();
+  if (!c || c.removedAt) notFound();
   const here = `/companies/${c.slug}`;
   const contacts = contactsFor(s, c.id).filter((x) => x.decisionMaker || /adviser/i.test(x.title));
   const step = c.decision === 'accepted' ? nextStepFor(s, c) : null;
@@ -39,6 +39,16 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
         </Card>
       )}
 
+      {c.decision === 'accepted' && c.pendingUpdate && (
+        <Banner tone="info" title={`Version ${c.pendingUpdate.version} shared ${fmtDay(c.pendingUpdate.sharedAt)} · waiting on you`}
+          actions={<><Link className={btnClass('link')} href={`${here}?dialog=reject_update`}>Reject Update</Link><Link className={btnClass('primary')} href={`${here}?dialog=accept_update`}>Accept Update</Link></>}>
+          Your consultant shared an updated version of this company. The version you accepted on {fmtDay(c.decidedAt)} stays in force until you decide.{c.pendingUpdate.summary ? ` ${c.pendingUpdate.summary}` : ''}
+        </Banner>
+      )}
+      {c.decision === 'accepted' && !c.pendingUpdate && c.updateRejectedReason && (
+        <Banner tone="muted" title="You rejected the latest update">Your reason: “{c.updateRejectedReason}” The version you accepted on {fmtDay(c.decidedAt)} stays in force.</Banner>
+      )}
+
       {c.decision === 'accepted' && step && (
         <Card className="flex flex-wrap items-center gap-4 p-5">
           <div className="flex flex-1 flex-col gap-2">
@@ -46,8 +56,15 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <div><Pill tone={step.tone}>{step.label}</Pill></div>
             <p className="max-w-xl text-[13px] text-muted">You review the plan and every email before anyone is contacted.</p>
           </div>
-          <Link href={step.href} className={btnClass('primary')}>Open Outreach</Link>
+          <Actions><Link href={`${here}?dialog=withdraw`} className={btnClass('link')}>Withdraw Acceptance</Link><Link href={step.href} className={btnClass('primary')}>Open Outreach</Link></Actions>
         </Card>
+      )}
+
+      {c.decision === 'withdrawn' && (
+        <Banner tone="muted" title={`You withdrew acceptance · ${fmtDay(c.decidedAt)}`}
+          actions={<Link className={btnClass('link')} href={`${here}?dialog=accept_again`}>Accept Again</Link>}>
+          Outreach to this company has stopped. Past emails and replies stay visible, read-only, in <Link className="underline" href={`/outreach/${c.slug}/conversations`}>Outreach</Link>.
+        </Banner>
       )}
 
       {c.decision === 'rejected' && (
@@ -106,6 +123,44 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
             <p>{c.name} is accepted. Its decision makers are now visible in People.</p>
             <p>Next, your consultant prepares a communications strategy for your review. Nothing is sent automatically.</p>
           </div>
+        </Modal>
+      )}
+
+      {q.dialog === 'accept_update' && c.pendingUpdate && (
+        <Modal title="Accept This Update?" closeHref={here} width={440}>
+          <form action={acceptUpdate} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="companyId" value={c.id} /><input type="hidden" name="redirect" value={here} />
+            <p className="text-sm text-muted">This replaces the version you accepted on {fmtDay(c.decidedAt)}. Unsent emails for this company pause until your consultant rechecks the strategy. Emails already sent aren’t affected.</p>
+            <Actions><Link href={here} className={btnClass('secondary')}>Cancel</Link><SubmitButton>Accept Update</SubmitButton></Actions>
+          </form>
+        </Modal>
+      )}
+      {q.dialog === 'reject_update' && c.pendingUpdate && (
+        <Modal title="Reject This Update?" closeHref={here} width={440}>
+          <form action={rejectUpdate} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="companyId" value={c.id} /><input type="hidden" name="redirect" value={here} />
+            <p className="text-sm text-muted">The version you accepted on {fmtDay(c.decidedAt)} stays in force, and outreach continues under it.</p>
+            <Field label="Reason (required)"><textarea name="reason" required rows={3} className={inputClass} placeholder="Tell your consultant why…" /></Field>
+            <Actions><Link href={here} className={btnClass('secondary')}>Cancel</Link><SubmitButton>Reject Update</SubmitButton></Actions>
+          </form>
+        </Modal>
+      )}
+      {q.dialog === 'withdraw' && c.decision === 'accepted' && (
+        <Modal title="Withdraw Acceptance?" closeHref={here} width={440}>
+          <form action={withdrawAcceptance} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="companyId" value={c.id} /><input type="hidden" name="redirect" value={here} />
+            <p className="text-sm text-muted">Future outreach to this company stops, and you lose access to its contacts and relationships through this company. Past emails and replies stay visible, read-only. Access through other accepted companies isn’t affected.</p>
+            <Actions><Link href={here} className={btnClass('secondary')}>Cancel</Link><SubmitButton variant="danger">Withdraw Acceptance</SubmitButton></Actions>
+          </form>
+        </Modal>
+      )}
+      {q.dialog === 'accept_again' && c.decision === 'withdrawn' && (
+        <Modal title="Accept Again?" closeHref={here} width={440}>
+          <form action={acceptAgain} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="companyId" value={c.id} /><input type="hidden" name="redirect" value={here} />
+            <p className="text-sm text-muted">The newest shared version will be in force. Outreach doesn’t restart on its own. Your consultant rechecks the strategy first.</p>
+            <Actions><Link href={here} className={btnClass('secondary')}>Cancel</Link><SubmitButton>Accept Again</SubmitButton></Actions>
+          </form>
         </Modal>
       )}
 

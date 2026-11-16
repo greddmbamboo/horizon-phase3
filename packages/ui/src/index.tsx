@@ -5,7 +5,7 @@
 import clsx from 'clsx';
 import Link from 'next/link';
 import { ArrowLeft, Check, X } from 'lucide-react';
-import type { ComponentProps, ReactNode } from 'react';
+import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 
 export const cn = (...a: Parameters<typeof clsx>) => clsx(...a);
 
@@ -179,8 +179,38 @@ export function ErrorState({ title, children, action }: { title: string; childre
   );
 }
 
-export function Skeleton({ className }: { className?: string }) {
-  return <div className={cn('hz-skeleton', className)} />;
+export function Skeleton({ className, style }: { className?: string; style?: CSSProperties }) {
+  return <div className={cn('hz-skeleton', className)} style={style} />;
+}
+
+/** Loading placeholders matching the Figma loading frames: a row of stat cards and a table. */
+export function SkeletonStats({ n = 4 }: { n?: number }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-flow-col md:grid-cols-none" aria-hidden>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} className="flex flex-col gap-2.5 rounded-card border border-line bg-page p-4"><Skeleton className="h-2.5 w-[90px]" /><Skeleton className="h-[22px] w-[50px]" /></div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonTable({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="overflow-hidden rounded-card border border-line" aria-hidden>
+      <div className="flex gap-[60px] bg-sunk px-4 py-3.5">{[120, 80, 100, 90].map((w, i) => <Skeleton key={i} className="h-2.5" style={{ width: w }} />)}</div>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex items-center gap-[60px] border-t border-line px-4 py-[18px]">
+          <div className="flex flex-col gap-2"><Skeleton className="h-3 w-[160px]" /><Skeleton className="h-2.5 w-[100px]" /></div>
+          {[80, 110, 90].map((w, i) => <Skeleton key={i} className="h-3" style={{ width: w }} />)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Screen-reader announcement for a loading region. */
+export function LoadingNote({ label }: { label: string }) {
+  return <span className="sr-only" role="status">{label}</span>;
 }
 
 /* ------------------------------------------------------------------ Tables */
@@ -208,6 +238,8 @@ export function PersonCell({ name, sub }: { name: string; sub?: string }) {
 }
 
 /* ------------------------------------------------------------------ Form fields */
+
+export const checkboxClass = 'hz-focus h-[18px] w-[18px] shrink-0 rounded-[4px] accent-[rgb(var(--accent))]';
 
 export const inputClass = 'hz-focus w-full rounded-md border border-line-strong bg-page px-3 py-2.5 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent';
 

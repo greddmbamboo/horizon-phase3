@@ -44,6 +44,22 @@ export async function sendReply(f: FormData) {
 }
 export async function logOutsideContact(f: FormData) { await run((s) => A.logOutsideContact(s, str(f, 'companyId'), f.getAll('contactIds').map(String), str(f, 'channel'), str(f, 'summary'))); go(f); }
 export async function suggestSettingChange(f: FormData) { await run((s) => A.suggestSettingChange(s, str(f, 'section'), str(f, 'text'))); go(f); }
+export async function acceptUpdate(f: FormData) { await run((s) => A.acceptUpdate(s, str(f, 'companyId'))); go(f); }
+export async function rejectUpdate(f: FormData) { await run((s) => A.rejectUpdate(s, str(f, 'companyId'), str(f, 'reason'))); go(f); }
+export async function withdrawAcceptance(f: FormData) { await run((s) => A.withdrawAcceptance(s, str(f, 'companyId'))); go(f); }
+export async function acceptAgain(f: FormData) { await run((s) => A.acceptAgain(s, str(f, 'companyId'))); go(f); }
+export async function saveSummaryPrefs(f: FormData) {
+  const reset = str(f, 'reset') === '1';
+  await run((s) => A.setSummaryPrefs(s, reset ? undefined : {
+    show: {
+      sent: f.has('sent'), replyRate: f.has('replyRate'), optOut: f.has('optOut'),
+      ready: f.has('ready'), sentiment: f.has('sentiment'), readinessColumn: f.has('readinessColumn'),
+    },
+    groupBy: str(f, 'groupBy') === 'none' ? 'none' : 'review_group',
+    range: str(f, 'range') === 'this_month' ? 'this_month' : 'all_time',
+  }));
+  go(f);
+}
 export async function addWritingExample(f: FormData) { await run((s) => A.addWritingExample(s, str(f, 'label'), str(f, 'text'))); go(f); }
 
 /* Operator app */
@@ -55,6 +71,21 @@ export async function updateStrategyRow(f: FormData) {
   }));
   go(f);
 }
+export async function addStrategyContact(f: FormData) { await run((s) => A.addStrategyContact(s, str(f, 'strategyId'), str(f, 'contactId'))); go(f); }
+export async function setOverlapDecision(f: FormData) {
+  const choice = str(f, 'choice');
+  if (choice !== 'this_only' && choice !== 'both' && choice !== 'neither') return;
+  await run((s) => A.setOverlapDecision(s, str(f, 'strategyId'), str(f, 'contactId'), choice));
+  go(f);
+}
+export async function setContactLocation(f: FormData) { await run((s) => A.setContactLocation(s, str(f, 'contactId'), str(f, 'location'), str(f, 'source'), str(f, 'url') || undefined)); go(f); }
+export async function startRegenerate(f: FormData) { await run((s) => A.startRegenerate(s, str(f, 'strategyId'))); go(f); }
+export async function finishRegenerate(strategyId: string) { await run((s) => A.finishRegenerate(s, strategyId)); }
+export async function removeFromClientView(f: FormData) { await run((s) => A.removeFromClientView(s, str(f, 'companyId'), str(f, 'reason'))); go(f); }
+export async function editFlaggedEmail(f: FormData) { await run((s) => A.editFlaggedEmail(s, str(f, 'emailId'), String(f.get('body') ?? ''))); go(f); }
+export async function rewriteWholeEmail(f: FormData) { await run((s) => A.rewriteWholeEmail(s, str(f, 'emailId'), str(f, 'instructions'), f.has('keepFact'), f.has('keepSubject'))); go(f); }
+export async function undoEmailVersion(f: FormData) { await run((s) => A.undoEmailVersion(s, str(f, 'emailId'))); go(f); }
+export async function addPrivateNote(f: FormData) { await run((s) => A.addPrivateNote(s, str(f, 'contactId'), str(f, 'text'))); go(f); }
 export async function setContactEmail(f: FormData) { await run((s) => A.setContactEmail(s, str(f, 'contactId'), str(f, 'email'))); go(f); }
 export async function resolveFlag(f: FormData) {
   const quote = str(f, 'quote');
@@ -73,5 +104,15 @@ export async function markNotificationsRead(f: FormData) { await run((s) => A.ma
 
 /* Demo controls (prototype only) */
 export async function simulateReply(f: FormData) { await run((s) => A.simulateReply(s, str(f, 'contactId'), str(f, 'kind') as never)); go(f); }
+export async function setBouncing(f: FormData) { await run((s) => A.setBouncing(s, str(f, 'contactId'), str(f, 'on') === '1')); go(f); }
+export async function shareDemoInsights(f: FormData) {
+  // Prototype only: stands in for the consultant sharing insights (that operator screen isn't designed yet).
+  await run((s) => A.shareInsights(s, str(f, 'companyId'), [
+    { title: 'Finn is thinking about succession, not a quick sale', body: 'He mentioned his long-time customers and crews twice. Leading with how you keep teams and contracts intact is likely to land.' },
+    { title: 'Marcus is the route to a decision', body: 'Finn plans to loop in Marcus once there’s something concrete. A short written overview Marcus can review would help.' },
+    { title: 'Timing: early next year', body: 'Finn says inquiries picked up this year. A first call before the holidays keeps you ahead of other buyers.' },
+  ]));
+  go(f);
+}
 export async function skipAhead(f: FormData) { await run((s) => A.skipAhead(s, Number(str(f, 'hours')) || 24)); go(f); }
 export async function resetDemo(f: FormData) { await getStore().reset(); revalidatePath('/', 'layout'); go(f); }

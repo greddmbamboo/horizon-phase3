@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getState } from '@horizon/outreach/data';
-import { companyBySlug, contactLine, contactsFor, fmtDayTime, personById, readinessFor, threadFor, wordCount, type Contact, type HorizonState, type Message } from '@horizon/outreach';
+import { companyBySlug, contactLine, outreachContacts, fmtDayTime, personById, readinessFor, threadFor, wordCount, type Contact, type HorizonState, type Message } from '@horizon/outreach';
 import { logOutsideContact, rewriteReply, sendReply, startReply } from '@horizon/outreach/server-actions';
 import { Actions, AnalysisRow, Banner, CheckDot, EmptyState, Field, Pill, btnClass, cn, inputClass } from '@horizon/ui';
 import { Modal } from '@horizon/ui/modal';
@@ -13,7 +13,7 @@ export default async function Conversations({ params, searchParams }: { params: 
   const q = await searchParams;
   const s = await getState();
   const c = companyBySlug(s, slug)!;
-  const people = contactsFor(s, c.id);
+  const people = outreachContacts(s, c.id);
   const withMsgs = people.filter((p) => threadFor(s, p.id).length);
   const sel = people.find((p) => p.id === q.contact) ?? withMsgs.find((p) => threadFor(s, p.id).at(-1)?.direction === 'in') ?? withMsgs[0] ?? people[0];
   const base = `/outreach/${slug}/conversations`;
@@ -43,7 +43,7 @@ export default async function Conversations({ params, searchParams }: { params: 
             </Link>
           ))}
         </div>
-        <Link href={`${here}&log=1`} className={btnClass('link', 'w-fit text-[13px]')}>+ Log Outside Contact</Link>
+        {c.decision === 'accepted' && <Link href={`${here}&log=1`} className={btnClass('link', 'w-fit text-[13px]')}>+ Log Outside Contact</Link>}
       </div>
 
       <div className="flex min-w-0 flex-col gap-3">
@@ -77,7 +77,7 @@ export default async function Conversations({ params, searchParams }: { params: 
       </div>
 
       {q.reply && draft && <ReplyModal s={s} contact={sel} draftId={draft.id} here={here} history={!!q.history} rewrite={!!q.rw} />}
-      {q.log && <LogModal s={s} companyId={c.id} people={people} selected={sel.id} here={here} />}
+      {q.log && c.decision === 'accepted' && <LogModal s={s} companyId={c.id} people={people} selected={sel.id} here={here} />}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 import Link from 'next/link';
-import { getState } from '@horizon/outreach/data';
-import { contactsFor, fmtDay, nextStepFor, readinessFor, strategyForCompany } from '@horizon/outreach';
+import { getState, simulate } from '@horizon/outreach/data';
+import { clientCompanies, contactsFor, fmtDay, nextStepFor, readinessFor, strategyForCompany } from '@horizon/outreach';
 import { EmptyState, PageHeader, PersonCell, Pill, StatCard, Table, Tabs, btnClass } from '@horizon/ui';
 
-export default async function OutreachList() {
+export default async function OutreachList({ searchParams }: { searchParams: Promise<{ simulate?: string }> }) {
+  await simulate(await searchParams);
   const s = await getState();
-  const accepted = s.companies.filter((c) => c.decision === 'accepted');
+  const accepted = clientCompanies(s).filter((c) => c.decision === 'accepted');
   const toReview = s.batches.filter((b) => b.status === 'reviewing').reduce((n, b) => n + s.emails.filter((e) => e.batchId === b.id).length, 0);
   const newReplies = s.messages.filter((m) => m.direction === 'in').length;
   const ready = s.readiness.filter((r) => r.status === 'confirmed').length;

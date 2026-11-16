@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getState } from '@horizon/outreach/data';
 import { companyById, contactById, fmtDayTime, personById, readinessFor, threadFor } from '@horizon/outreach';
-import { confirmReadiness, markNotReady, undoReadiness } from '@horizon/outreach/server-actions';
+import { addPrivateNote, confirmReadiness, markNotReady, undoReadiness } from '@horizon/outreach/server-actions';
 import { Actions, AnalysisRow, Banner, Card, EmptyState, Field, PageHeader, Pill, btnClass, cn, inputClass } from '@horizon/ui';
 import { Modal } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
@@ -19,6 +19,7 @@ export default async function Thread({ params, searchParams }: { params: Promise
   const here = `/queue/thread/${ct.id}`;
   const lastIn = [...msgs].reverse().find((m) => m.direction === 'in');
   const latestId = msgs[msgs.length - 1]?.id;
+  const notes = (s.privateNotes ?? []).filter((n) => n.contactId === ct.id);
 
   const status = r?.status === 'confirmed' ? <Pill tone="Done">Ready to meet</Pill>
     : r?.status === 'needs_review' ? <Pill tone="Needs Action">Needs attention</Pill>
@@ -95,9 +96,30 @@ export default async function Thread({ params, searchParams }: { params: Promise
             <p className="text-[13px] text-muted">{ct.bio}</p>
             <p className="text-xs text-muted">{ct.email ?? 'No email on file'}{ct.location ? ` · ${ct.location}` : ''}</p>
           </Card>
+          <Card className="flex flex-col gap-2 p-5">
+            <div className="flex items-center gap-2"><h3 className="text-sm font-semibold">Private Notes</h3><span className="text-xs text-muted">Consultants only</span></div>
+            {notes.length === 0 && <p className="text-[13px] text-muted">No notes yet.</p>}
+            {notes.map((n) => (
+              <div key={n.id} className="rounded-md bg-sunk px-3 py-2.5 text-[13px]">
+                <p>{n.text}</p>
+                <p className="mt-1 text-xs text-muted">{personById(s, n.by)?.name ?? 'Consultant'} · {fmtDayTime(n.at)}</p>
+              </div>
+            ))}
+            <Link className={btnClass('link', 'w-fit text-[13px]')} href={`${here}?dialog=note`} scroll={false}>Add Private Note</Link>
+          </Card>
         </div>
       </div>
 
+      {q.dialog === 'note' && (
+        <Modal title={`Private Note · ${ct.name}`} closeHref={here} width={520}>
+          <form action={addPrivateNote} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="contactId" value={ct.id} /><input type="hidden" name="redirect" value={here} />
+            <Field label="Note"><textarea name="text" required rows={3} autoFocus className={inputClass} placeholder="What should the next consultant know?" /></Field>
+            <p className="text-[13px] text-muted">Only Hofund consultants can see private notes. They’re never shown to the client.</p>
+            <Actions><Link className={btnClass('link')} href={here}>Cancel</Link><SubmitButton>Save Note</SubmitButton></Actions>
+          </form>
+        </Modal>
+      )}
       {q.dialog === 'notready' && (
         <Modal title="Not Currently Ready" subtitle={ct.name} closeHref={here} width={480}>
           <form action={markNotReady} className="flex flex-col gap-4 pb-2">

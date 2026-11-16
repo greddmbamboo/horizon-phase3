@@ -4,7 +4,7 @@ import { Banner, PageHeader, PersonCell, Table } from '@horizon/ui';
 
 export default async function People() {
   const s = await getState();
-  const contacts = s.contacts.filter((ct) => companyById(s, ct.companyId)?.decision === 'accepted');
+  const contacts = s.contacts.filter((ct) => companyById(s, ct.companyId)?.decision === 'accepted' && !companyById(s, ct.companyId)?.removedAt);
   return (
     <>
       <PageHeader title="People" subtitle="Decision makers and contacts at your accepted companies" />

@@ -2,12 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getState } from '@horizon/outreach/data';
 import { companyById, contactById, fmtDay, fmtDayTime, personById, unresolvedFlags, writingChecks } from '@horizon/outreach';
-import { resolveFlag, sendEmailToClient } from '@horizon/outreach/server-actions';
-import { Actions, Banner, Card, CheckDot, Field, IssueBadge, PageHeader, Pill, btnClass, inputClass } from '@horizon/ui';
+import { editFlaggedEmail, resolveFlag, rewriteWholeEmail, sendEmailToClient, undoEmailVersion } from '@horizon/outreach/server-actions';
+import { Actions, Banner, Card, CheckDot, Field, IssueBadge, PageHeader, Pill, btnClass, checkboxClass, inputClass } from '@horizon/ui';
+import { EmailEditor } from '@/components/EmailEditor';
 import { Modal } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
 
-type Q = { dialog?: 'not_issue' | 'without_fact' | 'source'; flag?: string };
+type Q = { dialog?: 'not_issue' | 'without_fact' | 'source' | 'rewrite'; flag?: string; mode?: string };
 
 const RES_LABEL: Record<string, string> = {
   rewritten: 'Rewritten with AI', not_issue: 'Marked not an issue', without_fact: 'Sending without a fact', source_added: 'Source added', edited: 'Edited',
@@ -26,6 +27,9 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
   const open = unresolvedFlags(e);
   const flag = e.flags.find((f) => f.id === q.flag);
   const cleared = e.status !== 'flagged';
+  const editing = q.mode === 'edit' && !cleared;
+  const lastVersion = e.versions.at(-1)!;
+  const canUndo = !cleared && e.versions.length > 1 && lastVersion.by === 'u_addler';
 
   // Highlight the flagged span in the body, if it's still there.
   const span = open.find((f) => f.span && e.body.includes(f.span))?.span;
@@ -43,26 +47,40 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
 
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         <Card className="flex flex-col gap-4 p-6">
+          {!cleared && !editing && (
+            <Actions start={<span className="text-xs text-muted">Version {e.versions.length} · {lastVersion.note}</span>}>
+              {canUndo && <form action={undoEmailVersion}><input type="hidden" name="emailId" value={e.id} /><input type="hidden" name="redirect" value={here} /><SubmitButton variant="link" pendingLabel="Undoing…">Undo</SubmitButton></form>}
+              <Link className={btnClass('link')} href={`${here}?dialog=rewrite`} scroll={false}>Rewrite the Whole Email</Link>
+              <Link className={btnClass('secondary')} href={`${here}?mode=edit`} scroll={false}>Edit</Link>
+            </Actions>
+          )}
           <dl className="grid grid-cols-[80px_1fr] gap-y-1.5 text-[13px]">
             <dt className="text-muted">From</dt><dd>{sender.name} · {sender.email}</dd>
             <dt className="text-muted">To</dt><dd>{ct.name} · {ct.email ?? 'no email yet'}</dd>
             <dt className="text-muted">Subject</dt><dd className="font-semibold">{e.subject}</dd>
             <dt className="text-muted">Objective</dt><dd>{e.objective}</dd>
           </dl>
+          {editing ? (
+            <div className="border-t border-line pt-4">
+              <EmailEditor emailId={e.id} body={e.body} here={here} action={editFlaggedEmail}
+                claims={open.filter((f) => f.span).map((f) => ({ title: f.title, span: f.span! }))} />
+            </div>
+          ) : (
           <div className="whitespace-pre-line border-t border-line pt-4 text-sm leading-relaxed">
             {before}
             {span && <mark className="rounded-sm bg-status-failed/10 text-ink underline decoration-status-failed decoration-wavy underline-offset-4">{span}</mark>}
             {after}
             {'\n\n'}{sender.name}{'\n'}{sender.title}, {s.engagement.clientName}
           </div>
+          )}
           {e.factSource && (
             <div className="rounded-md bg-sunk px-3 py-2.5 text-xs text-muted">
               <span className="font-semibold text-ink">Source · </span>“{e.factSource.quote}” — {e.factSource.source}, {e.factSource.date}
             </div>
           )}
-          <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-3 text-xs">
+          {!editing && <div className="flex flex-wrap gap-x-5 gap-y-2 border-t border-line pt-3 text-xs">
             {writingChecks(e).map((w) => <span key={w.label} className="flex items-center gap-1.5"><CheckDot ok={w.ok} />{w.label}</span>)}
-          </div>
+          </div>}
         </Card>
 
         <div className="flex flex-col gap-3 lg:sticky lg:top-6">
@@ -104,6 +122,18 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
         </div>
       )}
 
+      {q.dialog === 'rewrite' && !cleared && (
+        <Modal title="Rewrite the Whole Email" closeHref={here} width={520}>
+          <form action={rewriteWholeEmail} className="flex flex-col gap-4 pb-2">
+            <input type="hidden" name="emailId" value={e.id} /><input type="hidden" name="redirect" value={here} />
+            <p className="text-[13px] text-muted">A new version replaces the current one. You can undo it. Writing checks run again on the new version.</p>
+            <Field label="Anything to change? (optional)"><textarea name="instructions" rows={2} className={inputClass} placeholder="Keep it under 80 words and ask for a 15-minute call." autoFocus /></Field>
+            <label className="flex items-center gap-2.5 text-sm"><input type="checkbox" name="keepFact" defaultChecked className={checkboxClass} />Keep the sourced fact</label>
+            <label className="flex items-center gap-2.5 text-sm"><input type="checkbox" name="keepSubject" defaultChecked className={checkboxClass} />Keep the subject line</label>
+            <Actions><Link className={btnClass('link')} href={here}>Cancel</Link><SubmitButton pendingLabel="Rewriting…">Rewrite Email</SubmitButton></Actions>
+          </form>
+        </Modal>
+      )}
       {flag && q.dialog === 'not_issue' && (
         <Modal title="Not an Issue" subtitle={flag.title} closeHref={here} width={480}>
           <form action={resolveFlag} className="flex flex-col gap-4 pb-2">

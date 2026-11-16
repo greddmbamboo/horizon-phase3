@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { getState } from '@horizon/outreach/data';
-import { companyById, contactById, contactsFor, flaggedEmails, fmtDay, fmtDayTime, strategyForCompany, unresolvedFlags } from '@horizon/outreach';
+import { getState, simulate } from '@horizon/outreach/data';
+import { companyById, contactById, outreachContacts, flaggedEmails, fmtDay, fmtDayTime, strategyForCompany, unresolvedFlags } from '@horizon/outreach';
 import { Banner, EmptyState, PageHeader, PersonCell, Pill, Table, btnClass, cn } from '@horizon/ui';
 import { SendingBar } from '@/components/SendingBar';
 
@@ -12,8 +12,9 @@ const TABS = [
   { key: 'interest', label: 'Possible Acquisition Interest' },
 ];
 
-export default async function Queue({ searchParams }: { searchParams: Promise<{ tab?: string; sent?: string }> }) {
+export default async function Queue({ searchParams }: { searchParams: Promise<{ tab?: string; sent?: string; simulate?: string }> }) {
   const q = await searchParams;
+  await simulate(q);
   const s = await getState();
   const accepted = s.companies.filter((c) => c.decision === 'accepted');
   const writing = accepted.filter((c) => { const st = strategyForCompany(s, c.id); return st?.status === 'generating'; });
@@ -37,14 +38,14 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
       </nav>
 
       {tab === 'writing' && (writing.length ? (
-        <Table head={['Company', 'Accepted', 'Status', '']}>{writing.map((c) => <tr key={c.id}><td className="font-semibold">{c.name}</td><td>{fmtDay(c.decidedAt)}</td><td><Pill tone="In Progress">Being written</Pill></td><td /></tr>)}</Table>
+        <Table head={['Company', 'Accepted', 'Status', '']}>{writing.map((c) => <tr key={c.id}><td className="font-semibold">{c.name}</td><td>{fmtDay(c.decidedAt)}</td><td><Pill tone="In Progress">Being written</Pill></td><td className="text-right"><Link className={btnClass('link')} href={`/queue/strategy/${strategyForCompany(s, c.id)!.id}`}>View</Link></td></tr>)}</Table>
       ) : <EmptyState title="No strategies being written">New strategies are drafted automatically when the client accepts a company.</EmptyState>)}
 
       {tab === 'strategy' && (waiting.length ? (
         <Table head={['Company', 'Accepted', 'People available', 'Blockers', 'Status', '']}>
           {waiting.map((st) => {
             const c = companyById(s, st.companyId)!;
-            const people = contactsFor(s, c.id);
+            const people = outreachContacts(s, c.id);
             const missing = people.filter((p) => !p.email).length;
             const open = st.attention.filter((a) => !a.resolved);
             return (

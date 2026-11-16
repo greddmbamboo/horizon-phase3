@@ -40,6 +40,26 @@ The **Demo** panel is prototype-only. It fakes things that happen outside the
 app (replies arriving, time passing) and resets data. Remove `Demo.tsx` from
 both apps' layouts before this becomes the product.
 
+## Seeing the other states
+
+Everything in the Figma "Phase 3 Comprehensive" page that the prototype covers can be reached from the running apps:
+
+| State | How to see it |
+|---|---|
+| Loading (C-01a, C-04b, C-16c, O-02c) | Add `?simulate=slow` to Opportunity Overview, Outreach, Relationship Summary or Outreach Queue |
+| Error (C-01b, C-04c, C-07c, C-16c·2, O-02c·2) | Add `?simulate=error` to those pages, or to a company's Review & Send. *Try Again* reloads without it |
+| Accept / reject an update (C-02a) | Client → Company Review → Summit Perimeter Co. (version 2 is waiting) |
+| Withdraw acceptance, accept again (C-02a) | Client → an accepted company → *Withdraw Acceptance* |
+| Remove from client view (C-02a) | Operator → Sharing and Decisions → *Remove* |
+| Overlap, add person, location, regenerate (O-03b/d/e/g) | Operator → a strategy waiting on you (accept Finn’s Fancy Fences first) |
+| Edit directly, rewrite whole email, undo (O-05c/d) | Operator → Flagged Emails → Marcus Reyes |
+| One email fails to send (C-10a) | Demo panel → *Make Marcus’s address bounce*, then approve the batch |
+| Insights on the Summary tab (C-15a) | After Finn replies, Demo panel → *Share insights about Finn* |
+| Customize the summary (C-16b) | Client → Outreach → Relationship Summary → *Customize* |
+| Private notes (O-10d) | Operator → Possible Acquisition Interest → a person → *Add Private Note* |
+
+`?simulate=` and the Demo panel are prototype-only. The insights button stands in for an operator screen that isn't designed yet.
+
 ## Code map
 
 ```

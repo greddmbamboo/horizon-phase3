@@ -1,5 +1,5 @@
 import { getState } from '@horizon/outreach/data';
-import { companyBySlug, contactsFor, fmtDay, readinessFor, strategyForCompany, threadFor } from '@horizon/outreach';
+import { companyBySlug, outreachContacts, fmtDay, personById, readinessFor, strategyForCompany, threadFor } from '@horizon/outreach';
 import { Card, PersonCell, Pill, SectionTitle, Table, type Tone } from '@horizon/ui';
 
 export default async function Summary({ params }: { params: Promise<{ slug: string }> }) {
@@ -7,7 +7,7 @@ export default async function Summary({ params }: { params: Promise<{ slug: stri
   const s = await getState();
   const c = companyBySlug(s, slug)!;
   const st = strategyForCompany(s, c.id);
-  const rows = contactsFor(s, c.id).map((ct) => {
+  const rows = outreachContacts(s, c.id).map((ct) => {
     const t = threadFor(s, ct.id).filter((m) => m.direction !== 'outside');
     const last = t.at(-1);
     const r = readinessFor(s, ct.id);
@@ -20,7 +20,21 @@ export default async function Summary({ params }: { params: Promise<{ slug: stri
     else if (last) { tone = 'In Progress'; label = 'Waiting on reply'; next = 'Follow-up due 7 days after sending'; }
     return { ct, tone, label, last: last ? `${fmtDay(last.at)} · ${last.direction === 'in' ? 'replied' : 'sent'}` : '—', next };
   });
+  const insights = (s.insights ?? []).filter((i) => i.companyId === c.id);
   return (
+    <>
+    {insights.length > 0 && (
+      <Card className="flex flex-col gap-3.5 p-5">
+        <SectionTitle right={`Shared by ${personById(s, insights[0].by)?.name ?? 'your consultant'} · ${fmtDay(insights[0].at)}`}>Insights From Your Consultant</SectionTitle>
+        {insights.map((i) => (
+          <div key={i.id} className="relative flex flex-col gap-1 overflow-hidden rounded-md bg-highlight px-4 py-3">
+            <span className="absolute inset-y-0 left-0 w-[3px] bg-accent" aria-hidden />
+            <span className="text-sm font-semibold">{i.title}</span>
+            <span className="text-[13px] text-muted">{i.body}</span>
+          </div>
+        ))}
+      </Card>
+    )}
     <Card className="flex flex-col gap-4 p-5">
       <SectionTitle right={st ? `Strategy v${st.version} · ${st.status === 'accepted' ? `accepted ${fmtDay(st.acceptedAt)}` : st.status.replace('_', ' ')}` : undefined}>Where Things Stand</SectionTitle>
       <Table head={['Person', 'Status', 'Last contact', 'Next step']}>
@@ -29,5 +43,6 @@ export default async function Summary({ params }: { params: Promise<{ slug: stri
         ))}
       </Table>
     </Card>
+    </>
   );
 }

@@ -35,3 +35,23 @@ export function Modal({ title, subtitle, closeHref, children, footer, width = 72
     </Dialog.Root>
   );
 }
+
+/** URL-driven side panel (slides in from the right). Same open/close rules as Modal. */
+export function Panel({ title, closeHref, children, width = 420 }: { title: ReactNode; closeHref: string; children: ReactNode; width?: number }) {
+  const router = useRouter();
+  return (
+    <Dialog.Root open onOpenChange={(o) => { if (!o) router.push(closeHref, { scroll: false }); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-[rgb(33_25_36/0.25)]" />
+        <Dialog.Content className="fixed inset-y-0 right-0 z-50 flex w-[calc(100vw-32px)] flex-col gap-[18px] overflow-y-auto bg-page p-7 shadow-[-8px_0_32px_rgba(0,0,0,0.18)] focus:outline-none" style={{ maxWidth: width }}>
+          <div className="flex items-center gap-3">
+            <Dialog.Title className="flex-1 text-xl font-semibold">{title}</Dialog.Title>
+            <Dialog.Description className="sr-only">Panel</Dialog.Description>
+            <Dialog.Close className="hz-focus rounded p-1 text-muted hover:text-ink" aria-label="Close"><X size={18} /></Dialog.Close>
+          </div>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
