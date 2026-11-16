@@ -1,0 +1,19 @@
+@import '@horizon/ui/styles.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Operator app theme: Baltic rail, Gold primary action, Baltic accent and links. */
+:root {
+  --accent: 42 93 121;             /* Baltic Blue #2A5D79 */
+  --accent-fg: 255 255 255;
+  --text-link: 42 93 121;
+  --action-primary-bg: 252 193 43; /* Gold #FCC12B */
+  --action-primary-fg: 33 25 36;
+  --rail-bg: 20 49 65;             /* Baltic 700 */
+  --rail-edge: 20 49 65;
+  --rail-text: 255 255 255;
+  --rail-text-muted: 169 195 210;
+  --rail-active-bg: 33 78 103;     /* Baltic 600 */
+  --rail-active-marker: 252 193 43;
+}

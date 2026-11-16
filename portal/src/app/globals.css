@@ -1,0 +1,19 @@
+@import '@horizon/ui/styles.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Client portal theme: Light rail + tenant accent (Spacely Sprockets = violet). */
+:root {
+  --accent: 109 40 217;            /* #6D28D9 */
+  --accent-fg: 255 255 255;
+  --text-link: 33 25 36;           /* client links are dark + underlined */
+  --action-primary-bg: 109 40 217;
+  --action-primary-fg: 255 255 255;
+  --rail-bg: 248 248 247;
+  --rail-edge: 231 229 228;
+  --rail-text: 33 25 36;
+  --rail-text-muted: 95 88 102;
+  --rail-active-bg: 230 220 249;   /* #E6DCF9 */
+  --rail-active-marker: 109 40 217;
+}

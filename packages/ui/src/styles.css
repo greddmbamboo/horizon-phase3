@@ -1,0 +1,30 @@
+/* Shared base styles. Each app imports this, then sets its own theme variables
+   (see web/src/app/globals.css and portal/src/app/globals.css). Values are RGB triplets. */
+:root {
+  --surface-page: 255 255 255;
+  --surface-sunk: 248 248 247;
+  --surface-highlight: 250 248 244; /* Parchment 400 */
+  --border-default: 231 229 228;
+  --border-strong: 206 204 206; /* Shadow 100 */
+  --text-primary: 33 25 36; /* Shadow */
+  --text-muted: 95 88 102;
+  --action-disabled-bg: 239 238 236;
+  --action-disabled-fg: 169 166 170;
+}
+
+html { -webkit-font-smoothing: antialiased; }
+body { background: rgb(var(--surface-page)); color: rgb(var(--text-primary)); }
+
+.hz-focus:focus-visible { outline: 2px solid rgb(var(--accent)); outline-offset: 2px; }
+
+@keyframes hz-spin { to { transform: rotate(360deg); } }
+.hz-spin { animation: hz-spin 0.9s linear infinite; }
+@keyframes hz-pulse { 50% { opacity: .45; } }
+.hz-skeleton { background: rgb(var(--border-default)); border-radius: 4px; animation: hz-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .hz-spin, .hz-skeleton { animation: none; } }
+
+/* Fonts are bundled (no Google Fonts call at build time). */
+:root {
+  --font-montserrat: 'Montserrat Variable';
+  --font-source-serif: 'Source Serif 4 Variable';
+}
