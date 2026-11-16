@@ -423,12 +423,31 @@ export function resolveFlag(s: HorizonState, emailId: string, flagId: string, re
   f.resolutionNote = note;
   f.resolvedAt = s.now;
   f.resolvedBy = 'u_addler';
+  const first = contactById(s, e.contactId)!.name.split(' ')[0];
+  if (resolution === 'source_added' && source) e.factSource = source;
   if (resolution === 'rewritten' && f.span) {
-    const ct = contactById(s, e.contactId)!;
-    e.body = `Hello ${ct.name.split(' ')[0]},\n\nI’m reaching out on behalf of Spacely Sprockets, which is growing its commercial fencing business across the Front Range. We’d welcome the chance to learn whether Finn might be open to a conversation about the future of Finn’s Fancy Fences. Could we set up a short call next week to talk about the right way to introduce ourselves?`;
+    // With a sourced fact already added, the rewrite keeps it (Figma step 09's email).
+    e.body = e.factSource ? adviserEmailWithFact(first, e.factSource) : `Hello ${first},\n\nI’m reaching out on behalf of Spacely Sprockets, which is growing its commercial fencing business across the Front Range. We’d welcome the chance to learn whether Finn might be open to a conversation about the future of Finn’s Fancy Fences. Could we set up a short call next week to talk about the right way to introduce ourselves?`;
     e.versions.push({ version: e.versions.length + 1, body: e.body, note: 'Rewritten with AI to remove an unsupported claim', at: s.now, by: 'u_addler' });
   }
-  if (resolution === 'source_added' && source) e.factSource = source;
+  if (resolution === 'source_added' && source) {
+    // Adding a source puts the fact in the email. Once the made-up claim is gone, this is Figma step 09's email;
+    // before that, the fact opens the email and the flagged claim stays for the consultant to fix.
+    const claimOpen = e.flags.some((x) => x.type === 'unsupported_claim' && !x.resolved);
+    e.body = claimOpen ? e.body.replace(/^(Hello [^\n]+\n\n)/, `$1${factOpening(source)} `) : adviserEmailWithFact(first, source);
+    e.versions.push({ version: e.versions.length + 1, body: e.body, note: 'Source added', at: s.now, by: 'u_addler' });
+  }
+}
+
+/** The sentence that uses a sourced fact. The demo's CFCA fact gets Figma step 09's exact wording. */
+function factOpening(src: { quote: string; source: string; date: string }) {
+  if (/plan for succession/i.test(src.quote)) return 'I read your piece in the Colorado Fence Contractors Association newsletter (September 2026) on helping family-owned contractors plan for succession.';
+  return `I read ${src.source} (${src.date}): “${src.quote.replace(/^[“"…]+|[”"]+$/g, '')}”.`;
+}
+
+/** Figma step 09: the adviser's first-contact email once it has a sourced fact and no unsupported claim. */
+function adviserEmailWithFact(first: string, src: { quote: string; source: string; date: string }) {
+  return `Hello ${first},\n\n${factOpening(src)} I’m reaching out on behalf of Spacely Sprockets, which is growing its commercial fencing business across the Front Range.\n\nWould you be open to a 15-minute call next week to talk about the right way to introduce ourselves to Finn?`;
 }
 
 export function editEmailBody(s: HorizonState, emailId: string, body: string, by: string) {

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getState } from '@horizon/outreach/data';
-import { companyById, contactById, fmtDay, fmtDayTime, personById, unresolvedFlags, writingChecks } from '@horizon/outreach';
+import { companyById, contactById, fmtDayTime, personById, unresolvedFlags, writingChecks } from '@horizon/outreach';
 import { editFlaggedEmail, resolveFlag, rewriteWholeEmail, sendEmailToClient, undoEmailVersion } from '@horizon/outreach/server-actions';
 import { Actions, Banner, Card, CheckDot, Field, IssueBadge, PageHeader, Pill, btnClass, checkboxClass, inputClass } from '@horizon/ui';
 import { EmailEditor } from '@/components/EmailEditor';
@@ -191,10 +191,10 @@ export default async function FlaggedEmail({ params, searchParams }: { params: P
         <Modal title="Add a Source" subtitle="A verified fact the email can mention" closeHref={here} width={520}>
           <form action={resolveFlag} className="flex flex-col gap-4 pb-2">
             <Hidden emailId={e.id} flagId={flag.id} redirect={here} /><input type="hidden" name="resolution" value="source_added" />
-            <Field label="Quote or fact"><textarea name="quote" required rows={2} className={inputClass} defaultValue="Reyes & Hart has advised Colorado trade businesses on ownership transitions since 2009." /></Field>
+            <Field label="Quote or fact"><textarea name="quote" required rows={2} className={inputClass} defaultValue="…helping family-owned contractors plan for succession" /></Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="Source"><input name="source" required className={inputClass} defaultValue="reyeshart.com · About" /></Field>
-              <Field label="Date checked"><input name="date" required className={inputClass} defaultValue={fmtDay(s.now)} /></Field>
+              <Field label="Source"><input name="source" required className={inputClass} defaultValue="CFCA newsletter" /></Field>
+              <Field label="Date published"><input name="date" required className={inputClass} defaultValue="Sept 2026" /></Field>
             </div>
             <Field label="Link (optional)"><input name="url" type="url" className={inputClass} placeholder="https://" /></Field>
             <Actions><Link className={btnClass('link')} href={here}>Cancel</Link><SubmitButton>Add Source</SubmitButton></Actions>
