@@ -149,10 +149,17 @@ class RedisStore implements StateStore {
   }
 
   async read(): Promise<{ state: HorizonState; version: number }> {
-    const row = (await this.db.hgetall(this.key)) as Record<string, string> | null;
-    if (row && row.doc) return { state: JSON.parse(row.doc) as HorizonState, version: Number(row.version) };
-    await this.db.eval(CAS, [this.key], ['0', '1', JSON.stringify(seedState())]);
-    return this.read();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      // With automaticDeserialization off, the client returns HMGET (and HGETALL) as a
+      // plain array, not an object. Accept either shape so the read can never miss the doc.
+      const got = (await this.db.hmget(this.key, 'version', 'doc')) as unknown;
+      const row = Array.isArray(got)
+        ? { version: got[0] as string | null, doc: got[1] as string | null }
+        : (got as { version?: string | null; doc?: string | null } | null);
+      if (row && row.doc) return { state: JSON.parse(row.doc) as HorizonState, version: Number(row.version) };
+      await this.db.eval(CAS, [this.key], ['0', '1', JSON.stringify(seedState())]);
+    }
+    throw new Error('Could not load the shared demo data. Try again.');
   }
 
   async mutate<T>(fn: (draft: HorizonState) => T): Promise<T> {
