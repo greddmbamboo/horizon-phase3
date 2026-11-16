@@ -15,7 +15,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="mx-auto flex max-w-[1080px] flex-col gap-5">{children}</div>
       </main>
       <LiveRefresh />
-      <Demo state={s} otherAppUrl={process.env.NEXT_PUBLIC_OTHER_APP_URL || 'http://localhost:3000'} otherAppLabel="Open the operator app" />
+      <Demo state={s} otherAppUrl={process.env.VERCEL ? '/' : (process.env.NEXT_PUBLIC_OTHER_APP_URL || 'http://localhost:3000')} otherAppLabel="Open the operator app" />
     </div>
   );
 }
