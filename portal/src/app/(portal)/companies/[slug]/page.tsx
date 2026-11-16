@@ -8,6 +8,13 @@ import { Modal } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
 import { DecisionPill } from '@/components/bits';
 
+/** Figma 00: each assessment card links to its detail (not designed yet, so shown as a link label only, like Sources). */
+const ASSESSMENT_LINK: Record<string, string> = {
+  'Buyer Fit': 'See the six section scores',
+  Readiness: 'See evidence (3)',
+  'Acquisition Merit Score': 'How this is scored',
+};
+
 export default async function CompanyPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ accepted?: string; reject?: string; dialog?: string }> }) {
   const { slug } = await params;
   const q = await searchParams;
@@ -91,7 +98,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
 
       {c.assessments.length > 0 && (
         <div className="grid gap-4 md:grid-cols-3">
-          {c.assessments.map((a) => (<Card key={a.label} className="flex flex-col gap-1.5 p-5"><div className="text-xs text-muted">{a.label}</div><div className="text-lg font-semibold">{a.value}</div><div className="text-[13px] text-muted">{a.note}</div></Card>))}
+          {c.assessments.map((a) => (<Card key={a.label} className="flex flex-col gap-1.5 p-5"><div className="text-xs text-muted">{a.label}</div><div className="text-lg font-semibold">{a.value}</div><div className="text-[13px] text-muted">{a.note}</div>{ASSESSMENT_LINK[a.label] && <span className="mt-1 text-xs underline">{ASSESSMENT_LINK[a.label]}</span>}</Card>))}
         </div>
       )}
 
@@ -107,7 +114,8 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
                   <div className="flex flex-col gap-0.5">
                     <span className="text-sm font-semibold">{ct.name}</span>
                     <span className="text-xs text-muted">{ct.roleLabel}</span>
-                    <span className="text-xs text-muted">{replied ? ct.email : c.decision === 'accepted' ? `Contact details are shared once ${ct.name.split(' ')[0]} replies.` : ct.bio}</span>
+                    <span className="text-xs text-muted">{ct.bio}</span>
+                    {replied && ct.email && <span className="text-xs text-muted">{ct.email}</span>}
                   </div>
                 </div>
               );
@@ -118,7 +126,7 @@ export default async function CompanyPage({ params, searchParams }: { params: Pr
 
       {q.accepted && c.decision === 'accepted' && (
         <Modal title="Company Accepted" closeHref={here} width={460}
-          footer={<Actions><Link href={here} className={btnClass('secondary')}>Stay in Review</Link><Link href={`/outreach/${c.slug}/strategy`} className={btnClass('primary')}>Go to Outreach</Link></Actions>}>
+          footer={<Actions><Link href={here} className={btnClass('secondary')}>Stay in Review</Link><Link href={`/outreach/${c.slug}/strategy`} className={btnClass('primary')}>Go to Communications</Link></Actions>}>
           <div className="flex flex-col gap-3 text-sm text-muted">
             <p>{c.name} is accepted. Its decision makers are now visible in People.</p>
             <p>Next, your consultant prepares a communications strategy for your review. Nothing is sent automatically.</p>

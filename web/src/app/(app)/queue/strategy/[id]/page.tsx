@@ -106,6 +106,7 @@ export default async function StrategyReview({ params, searchParams }: { params:
           <form action={publishStrategy}>
             <input type="hidden" name="strategyId" value={st.id} /><input type="hidden" name="redirect" value={here} />
             <Actions start={open.length ? <span className="text-[13px] text-muted">{open.length} {open.length > 1 ? 'items need' : 'item needs'} attention. You can still publish.</span> : undefined}>
+              <Link className={btnClass('link')} href="/queue?tab=strategy&saved=strategy">Save Draft</Link>
               <SubmitButton variant="secondary" formAction={startRegenerate} pendingLabel="Starting…">Regenerate</SubmitButton>
               <SubmitButton pendingLabel="Publishing…">Publish for Client Review</SubmitButton>
             </Actions>

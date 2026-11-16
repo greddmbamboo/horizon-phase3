@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getState, simulate } from '@horizon/outreach/data';
-import { batchesFor, companyBySlug, contactById, fmtDayTime, openBatch, type HorizonState } from '@horizon/outreach';
+import { batchesFor, clientVersionCount, companyBySlug, contactById, fmtDayTime, openBatch, type HorizonState } from '@horizon/outreach';
 import { approveBatch, editEmail, markReviewed, requestEmailRewrite } from '@horizon/outreach/server-actions';
 import { Actions, Banner, EmptyState, Field, PersonCell, Pill, Table, btnClass, inputClass } from '@horizon/ui';
 import { Modal } from '@horizon/ui/modal';
@@ -143,9 +143,9 @@ function ReviewModal({ s, emailId, mode, here }: { s: HorizonState; emailId: str
   );
 
   return (
-    <Modal title={live ? `Review Email ${i + 1} of ${list.length}${e.versions.length > 1 ? ` · v${e.versions.length}` : ''}` : 'Sent Email'} closeHref={here} footer={footer} width={860}>
+    <Modal title={live ? `Review Email ${i + 1} of ${list.length}${clientVersionCount(e) > 1 ? ` · v${clientVersionCount(e)}` : ''}` : 'Sent Email'} closeHref={here} footer={footer} width={860}>
       {live && <AutoReviewed emailId={e.id} reviewed={e.reviewed} action={markReviewed} />}
-      {e.versions.length > 1 && live && mode !== 'edit' && (
+      {clientVersionCount(e) > 1 && live && mode !== 'edit' && (
         <Banner tone="info" title="Updated version" className="mb-4">{e.versions.at(-1)!.note}. Review it again before sending.</Banner>
       )}
       {mode === 'edit' ? (

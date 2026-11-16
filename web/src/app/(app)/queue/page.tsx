@@ -12,7 +12,7 @@ const TABS = [
   { key: 'interest', label: 'Possible Acquisition Interest' },
 ];
 
-export default async function Queue({ searchParams }: { searchParams: Promise<{ tab?: string; sent?: string; simulate?: string }> }) {
+export default async function Queue({ searchParams }: { searchParams: Promise<{ tab?: string; sent?: string; saved?: string; simulate?: string }> }) {
   const q = await searchParams;
   await simulate(q);
   const s = await getState();
@@ -29,6 +29,7 @@ export default async function Queue({ searchParams }: { searchParams: Promise<{ 
       <PageHeader back={{ href: '/messaging', label: 'Messaging' }} title="Outreach Queue" subtitle={`${s.engagement.name} · messages and replies that need your action`} />
       <SendingBar s={s} />
       {q.sent && <Banner tone="success" title="Sent to the client for review">The client is notified once every email in the batch has cleared review.</Banner>}
+      {q.saved && <Banner tone="success" title="Draft saved">{q.saved === 'strategy' ? 'Nothing has been shared. The strategy stays in Strategy Waiting on You until you publish it.' : 'Nothing has been sent. The email stays in Flagged Emails until you send it to the client.'}</Banner>}
       <nav className="flex flex-wrap gap-1 border-b border-line">
         {TABS.map((t) => (
           <Link key={t.key} href={`/queue?tab=${t.key}`} className={cn('-mb-px border-b-2 px-3 py-2.5 text-[13px]', tab === t.key ? 'border-accent font-semibold' : 'border-transparent text-muted hover:text-ink')}>

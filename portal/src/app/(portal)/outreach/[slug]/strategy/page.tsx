@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getState } from '@horizon/outreach/data';
-import { companyBySlug, contactById, fmtDay, fmtDayTime, personById, strategyForCompany } from '@horizon/outreach';
+import { clientReason, companyBySlug, contactById, fmtDay, fmtDayTime, personById, relationshipOf, strategyForCompany } from '@horizon/outreach';
 import { acceptStrategy, requestStrategyChanges } from '@horizon/outreach/server-actions';
 import { Actions, Banner, Button, Card, Field, PersonCell, Pill, Table, btnClass, inputClass } from '@horizon/ui';
 import { SubmitButton } from '@horizon/ui/client';
@@ -33,6 +33,7 @@ export default async function StrategyTab({ params, searchParams }: { params: Pr
           </ol>
           <p className="text-[13px] text-muted">We’ll notify you when it’s ready to review. Nothing is sent until you accept the strategy and approve each email.</p>
         </Card>
+        <Actions><Button disabled>Request Changes</Button><Button variant="primary" disabled>Accept Strategy</Button></Actions>
       </>
     );
   }
@@ -63,12 +64,12 @@ export default async function StrategyTab({ params, searchParams }: { params: Pr
 
       <Card className="flex flex-col gap-2 p-5">
         <div className="flex items-center gap-3"><h2 className="text-[15px] font-semibold">Objective</h2><span className="ml-auto">{statusPill}</span></div>
-        <p className="text-xs text-muted">Published {fmtDay(st.publishedAt)} · v{st.version}</p>
+        <p className="text-xs text-muted">Published {fmtDay(st.publishedAt)}{st.version > 1 ? ` · v${st.version}` : ''}</p>
         <p className="text-sm">{st.objective}</p>
       </Card>
 
       <h2 className="text-[17px] font-semibold">Who to Contact, When and Why</h2>
-      <Table head={['#', 'Person / role', 'Objective', 'Sender', 'When', 'Reason']}>
+      <Table head={['#', 'Person / role', 'Relationship', 'Objective', 'Sender', 'When', 'Reason']}>
         {st.rows.sort((a, b) => a.order - b.order).map((r) => {
           const ct = contactById(s, r.contactId)!;
           const sender = personById(s, r.senderId);
@@ -76,10 +77,11 @@ export default async function StrategyTab({ params, searchParams }: { params: Pr
             <tr key={r.contactId}>
               <td className="text-muted">{r.order}</td>
               <td><PersonCell name={ct.name} sub={ct.roleLabel} /></td>
+              <td>{relationshipOf(ct)}</td>
               <td>{r.objective}</td>
               <td><PersonCell name={sender?.name ?? '—'} sub={sender?.title === 'Head of Corporate Development' ? 'Head of Corp. Dev.' : sender?.title} /></td>
               <td><PersonCell name={r.when} sub={r.whenNote} /></td>
-              <td className="text-muted">{r.reason}</td>
+              <td className="text-muted">{clientReason(r)}</td>
             </tr>
           );
         })}
@@ -96,7 +98,7 @@ export default async function StrategyTab({ params, searchParams }: { params: Pr
         </Card>
         <Card className="flex flex-col gap-2 p-5">
           <h3 className="text-sm font-semibold">What Happens After You Accept</h3>
-          <p className="text-[13px] text-muted">Addler Pluviose, your consultant, checks the first-contact emails. You review each one before it sends.</p>
+          <p className="text-[13px] text-muted">Addler Pluviose, your consultant, writes first-contact emails for {st.rows.filter((r) => r.wave === 1).sort((a, b) => a.order - b.order).map((r) => `#${r.order}`).join(' and ')}. You review each one before it sends.</p>
         </Card>
       </div>
 

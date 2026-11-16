@@ -1,5 +1,5 @@
 /** Read helpers shared by both apps. Pure functions over HorizonState. */
-import type { Company, Contact, Email, HorizonState, Message, Readiness, Strategy } from './types';
+import type { Company, Contact, Email, HorizonState, Message, Readiness, Strategy, StrategyRow } from './types';
 
 let counter = 0;
 export function uid(prefix: string) {
@@ -48,8 +48,20 @@ export function wordCount(text: string) {
 }
 
 /** Writing checks shown under every email. Failing checks come first. */
-export function writingChecks(e: Email) {
+/**
+ * The writing checks shown next to an email.
+ * - operator: every check, including how the consultant resolved a flag.
+ * - client: only what the email itself shows. The consultant's quality-control notes
+ *   (an overridden flag, a reason for sending without a fact) stay internal.
+ */
+export function writingChecks(e: Email, audience: 'operator' | 'client' = 'operator') {
   const words = wordCount(e.body);
+  if (audience === 'client') {
+    const out = [{ label: `${words} / 149 words`, ok: words <= 149 }];
+    if (e.factSource) out.push({ label: 'Specific fact, sourced', ok: true });
+    out.push({ label: 'One clear ask', ok: true }, { label: 'Plain, human voice', ok: true });
+    return out;
+  }
   const fails: { label: string; ok: boolean }[] = [];
   const passes: { label: string; ok: boolean }[] = [];
   for (const f of e.flags) {
@@ -60,6 +72,12 @@ export function writingChecks(e: Email) {
   passes.unshift({ label: `${words} / 149 words`, ok: words <= 149 });
   passes.push({ label: 'One clear ask', ok: true });
   return [...fails, ...passes];
+}
+
+/** Versions of an email the client has a reason to know about: ones made after a client edit or rewrite request. */
+export function clientVersionCount(e: Email) {
+  const firstClient = e.versions.findIndex((v) => v.by === 'u_rachel');
+  return firstClient < 0 ? 1 : 1 + (e.versions.length - firstClient);
 }
 
 /** What the client sees as the "next step" for a company on the Outreach list. */
@@ -115,4 +133,23 @@ export function fmtDayTime(iso?: string) {
   const day = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: TZ });
   const t = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
   return `${day}, ${t}`;
+}
+
+/**
+ * Figma 05: the client's strategy table shows each person's relationship to the company
+ * and a client-facing reason. The consultant's own shorthand stays on the operator side,
+ * unless the consultant edited the row, in which case their wording is what the client sees.
+ */
+const CLIENT_REASON: Record<string, string> = {
+  'Owner authority confirmed.': 'Owner authority is confirmed, so start here.',
+  'Influencer; second path in.': 'Influencer, not a decision maker. Gives a second path in.',
+  'Wait for the owner.': 'Only once the owner is open to talking.',
+};
+export function clientReason(row: StrategyRow) {
+  return row.edited ? row.reason : CLIENT_REASON[row.reason] ?? row.reason;
+}
+export function relationshipOf(ct: Contact) {
+  if (/adviser/i.test(ct.title)) return 'Adviser';
+  if (ct.decisionMaker && /owner/i.test(ct.title)) return 'Owner';
+  return 'Employee';
 }

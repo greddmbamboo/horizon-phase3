@@ -15,7 +15,7 @@ export function EmailMeta({ s, e }: { s: HorizonState; e: Email }) {
 }
 
 export function EmailCard({ s, e }: { s: HorizonState; e: Email }) {
-  const checks = writingChecks(e);
+  const checks = writingChecks(e, 'client');
   return (
     <div className="flex flex-col gap-4 rounded-card border border-line p-6">
       <EmailMeta s={s} e={e} />

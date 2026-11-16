@@ -16,6 +16,17 @@ function advance(s: HorizonState, ms: number) {
   s.now = new Date(new Date(s.now).getTime() + ms).toISOString();
 }
 
+/**
+ * Demo clock: jump to a believable business time for a step of the happy path
+ * (the same timeline the Figma happy path uses). If the demo is already past it,
+ * move forward by `fallbackMs` instead, so time never runs backwards.
+ */
+function moveTo(s: HorizonState, iso: string, fallbackMs: number) {
+  const target = new Date(iso).getTime();
+  if (target > new Date(s.now).getTime()) s.now = new Date(target).toISOString();
+  else advance(s, fallbackMs);
+}
+
 function log(s: HorizonState, side: 'client' | 'operator' | 'system', text: string) {
   s.activity.unshift({ id: uid('act'), at: s.now, side, text });
 }
@@ -39,7 +50,7 @@ function slugOf(s: HorizonState, companyId: string) {
 export function acceptCompany(s: HorizonState, companyId: string) {
   const c = companyById(s, companyId);
   if (!c || c.decision === 'accepted') return;
-  advance(s, HOUR);
+  moveTo(s, '2026-11-03T16:40:00-07:00', HOUR);
   c.decision = 'accepted';
   c.decidedAt = s.now;
   c.rejectReason = undefined;
@@ -293,7 +304,7 @@ export function setContactEmail(s: HorizonState, contactId: string, email: strin
 export function publishStrategy(s: HorizonState, strategyId: string) {
   const st = s.strategies.find((x) => x.id === strategyId);
   if (!st) return;
-  advance(s, 6 * HOUR);
+  moveTo(s, '2026-11-04T11:30:00-07:00', 6 * HOUR);
   st.status = 'with_client';
   st.publishedAt = s.now;
   const c = companyById(s, st.companyId)!;
@@ -332,7 +343,7 @@ export function reviseStrategy(s: HorizonState, strategyId: string, changeSummar
 export function acceptStrategy(s: HorizonState, strategyId: string) {
   const st = s.strategies.find((x) => x.id === strategyId);
   if (!st || !active(s, st.companyId)) return;
-  advance(s, 2 * HOUR);
+  moveTo(s, '2026-11-04T15:20:00-07:00', 2 * HOUR);
   st.status = 'accepted';
   st.acceptedAt = s.now;
   const c = companyById(s, st.companyId)!;
@@ -371,7 +382,7 @@ function firstEmailFor(s: HorizonState, contactId: string, sender: string): Pick
 export function writeFirstEmails(s: HorizonState, companyId: string) {
   const st = strategyForCompany(s, companyId);
   if (!st) return;
-  advance(s, 24 * HOUR);
+  moveTo(s, '2026-11-09T08:30:00-07:00', 24 * HOUR);
   const n = s.batches.filter((b) => b.companyId === companyId).length + 1;
   const batch = { id: uid('b'), companyId, number: n, label: 'First contact', status: 'preparing' as const };
   s.batches.push(batch);
@@ -501,7 +512,7 @@ export function approveBatch(s: HorizonState, batchId: string) {
   if (!emails.every((e) => e.reviewed)) return;
   const company = companyById(s, b.companyId);
   if (company?.decision !== 'accepted' || company.removedAt) return;
-  advance(s, 12 * HOUR);
+  moveTo(s, '2026-11-10T09:15:00-07:00', 12 * HOUR);
   b.status = 'sent';
   b.sentAt = s.now;
   b.approvedBy = 'u_rachel';
@@ -544,7 +555,7 @@ const REPLIES: Record<'positive' | 'decline' | 'optout', { body: string; analysi
 export function simulateReply(s: HorizonState, contactId: string, kind: 'positive' | 'decline' | 'optout') {
   const ct = contactById(s, contactId);
   if (!ct) return;
-  advance(s, 24 * HOUR);
+  moveTo(s, '2026-11-11T10:40:00-07:00', 24 * HOUR);
   const r = REPLIES[kind];
   const body = r.body.replace(/Finn Calloway$|Finn$/, ct.name).replace('Hi Rachel', 'Hi Rachel');
   s.messages.push({ id: uid('m'), companyId: ct.companyId, contactId, direction: 'in', subject: 'Re: An introduction from Spacely Sprockets', body, at: s.now, analysis: r.analysis });
@@ -609,7 +620,7 @@ export function rewriteReplyDraft(s: HorizonState, draftId: string, feedback: st
 export function sendReply(s: HorizonState, draftId: string) {
   const d = s.replyDrafts.find((x) => x.id === draftId);
   if (!d) return;
-  advance(s, 3 * HOUR);
+  moveTo(s, '2026-11-11T14:05:00-07:00', 3 * HOUR);
   const ct = contactById(s, d.contactId)!;
   if (s.sending.mailbox === 'disconnected') return;
   const rc = companyById(s, ct.companyId);

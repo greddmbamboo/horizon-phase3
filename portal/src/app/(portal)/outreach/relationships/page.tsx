@@ -6,19 +6,24 @@ import { saveSummaryPrefs } from '@horizon/outreach/server-actions';
 import { Actions, EmptyState, Field, PageHeader, PersonCell, StatCard, Table, Tabs, btnClass, checkboxClass, inputClass } from '@horizon/ui';
 import { Panel } from '@horizon/ui/modal';
 import { SubmitButton } from '@horizon/ui/client';
+import { ChevronDown, SlidersHorizontal } from 'lucide-react';
 
 const HERE = '/outreach/relationships';
 
-export default async function RelationshipSummary({ searchParams }: { searchParams: Promise<{ customize?: string; simulate?: string }> }) {
+export default async function RelationshipSummary({ searchParams }: { searchParams: Promise<{ customize?: string; simulate?: string; company?: string; range?: string }> }) {
   const q = await searchParams;
   await simulate(q);
   const s = await getState();
   const prefs = s.summaryPrefs ?? DEFAULT_SUMMARY_PREFS;
-  const accepted = clientCompanies(s).filter((c) => c.decision === 'accepted');
+  const allAccepted = clientCompanies(s).filter((c) => c.decision === 'accepted');
+  // Figma 15 filter bar: one company or all, and the "first sent" range (overrides the saved default).
+  const picked = allAccepted.find((c) => c.slug === q.company);
+  const accepted = picked ? [picked] : allAccepted;
+  const range = q.range === 'all_time' || q.range === 'this_month' ? q.range : prefs.range;
   const acceptedIds = new Set(accepted.map((c) => c.id));
   // Date range: "this month" counts only emails first sent in the demo's current month.
   const month = s.now.slice(0, 7);
-  const inRange = (at: string) => prefs.range === 'all_time' || at.slice(0, 7) === month;
+  const inRange = (at: string) => range === 'all_time' || at.slice(0, 7) === month;
   const msgs = s.messages.filter((m) => acceptedIds.has(m.companyId) && inRange(m.at));
   const out = msgs.filter((m) => m.direction === 'out');
   const sentContacts = new Set(out.map((m) => m.contactId));
@@ -45,9 +50,13 @@ export default async function RelationshipSummary({ searchParams }: { searchPara
 
   return (
     <>
-      <PageHeader title="Outreach" subtitle={`${s.engagement.name} engagement · as of ${fmtDayTime(s.now)} · inbox last checked ${s.sending.lastChecked}`}
-        right={<Link className={btnClass('secondary')} href={`${HERE}?customize=1`} scroll={false}>Customize</Link>} />
+      <PageHeader back={{ href: '/outreach', label: 'Outreach' }} title="Relationship Summary" subtitle={`As of ${fmtLong(s.now)} · inbox last checked ${s.sending.lastChecked}`} />
       <Tabs items={[{ label: 'Companies', href: '/outreach' }, { label: 'Relationship Summary', href: HERE, active: true }]} />
+      <div className="flex flex-wrap items-center gap-2">
+        <FilterMenu label="Company" value={picked?.name ?? 'All'} options={[{ label: 'All', href: link({ ...q, company: undefined }) }, ...allAccepted.map((c) => ({ label: c.name, href: link({ ...q, company: c.slug }) }))]} />
+        <FilterMenu label="First sent" value={range === 'all_time' ? 'All time' : monthLabel(s.now)} options={[{ label: monthLabel(s.now), href: link({ ...q, range: 'this_month' }) }, { label: 'All time', href: link({ ...q, range: 'all_time' }) }]} />
+        <Link className={btnClass('link', 'ml-auto inline-flex items-center gap-1.5')} href={link({ ...q, customize: '1' })} scroll={false}><SlidersHorizontal size={14} />Customize</Link>
+      </div>
       {perf.length > 0 && (<><h2 className="text-[15px] font-semibold">Email Performance</h2><div className="grid gap-4 md:grid-cols-3">{perf}</div></>)}
       {rel.length > 0 && (<><h2 className="text-[15px] font-semibold">Relationships · As of Today</h2><div className="grid grid-cols-2 gap-4 md:grid-cols-4">{rel}</div></>)}
       {out.length === 0 ? (
@@ -73,7 +82,7 @@ export default async function RelationshipSummary({ searchParams }: { searchPara
       )}
 
       {q.customize && (
-        <Panel title="Customize Summary" closeHref={HERE}>
+        <Panel title="Customize Summary" closeHref={link({ ...q, customize: undefined })}>
           <form action={saveSummaryPrefs} className="flex flex-col gap-[18px]">
             <input type="hidden" name="redirect" value={HERE} />
             <fieldset className="flex flex-col gap-3">
@@ -96,6 +105,38 @@ export default async function RelationshipSummary({ searchParams }: { searchPara
         </Panel>
       )}
     </>
+  );
+}
+
+function link(q: Record<string, string | undefined>) {
+  const p = new URLSearchParams();
+  for (const k of ['company', 'range', 'customize'] as const) if (q[k]) p.set(k, q[k]!);
+  const str = p.toString();
+  return str ? `${HERE}?${str}` : HERE;
+}
+
+const TZ = 'America/Denver';
+function fmtLong(iso: string) {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TZ })}, ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ })}`;
+}
+function monthLabel(iso: string) {
+  const d = new Date(iso);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  return `1–${last} ${d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: TZ })}`;
+}
+
+/** A small dropdown made of links, so it works without client-side code. */
+function FilterMenu({ label, value, options }: { label: string; value: string; options: { label: string; href: string }[] }) {
+  return (
+    <details className="relative">
+      <summary className="hz-focus flex cursor-pointer list-none items-center gap-1.5 rounded-md border border-line bg-page px-3 py-1.5 text-[13px]">
+        <span className="text-muted">{label}</span> <span className="font-medium">{value}</span> <ChevronDown size={14} className="text-muted" />
+      </summary>
+      <div className="absolute left-0 z-20 mt-1 flex min-w-[200px] flex-col rounded-md border border-line bg-page py-1 shadow-modal">
+        {options.map((o) => <Link key={o.href} href={o.href} className="px-3 py-1.5 text-[13px] hover:bg-sunk">{o.label}</Link>)}
+      </div>
+    </details>
   );
 }
 
