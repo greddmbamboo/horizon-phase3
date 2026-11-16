@@ -2,7 +2,7 @@
    (see web/src/app/globals.css and portal/src/app/globals.css). Values are RGB triplets. */
 :root {
   --surface-page: 255 255 255;
-  --surface-sunk: 248 248 247;
+  --surface-sunk: 250 248 244; /* Parchment 400 */
   --surface-highlight: 250 248 244; /* Parchment 400 */
   --border-default: 231 229 228;
   --border-strong: 206 204 206; /* Shadow 100 */
