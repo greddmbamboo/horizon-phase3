@@ -7,7 +7,7 @@ operator see each other's changes.
 | App | Folder | Local URL | Who uses it |
 |---|---|---|---|
 | Operator app | `web/` | http://localhost:3000 | Hofund consultants (Addler) |
-| Client portal | `portal/` | http://localhost:3001/portal | Spacely Sprockets (Rachel) |
+| Client portal | `portal/` | http://localhost:3001 | Spacely Sprockets (Rachel) |
 
 Stack matches `hofund-intel`: Next.js 15 App Router, React 19, TypeScript,
 Tailwind 3.4 with a shared preset, Radix dialogs, lucide-react, Supabase, npm
@@ -83,28 +83,34 @@ state is linkable and the back button works.
 
 ## Deploying to Vercel
 
-One Vercel project, two services, one address (`vercel.json` at the repo root):
+The two apps never call each other; they only share the data store. Either layout works.
 
-| Path | Service | App |
+### Two Vercel projects (Hofund's setup)
+
+| Project | Root Directory | Settings |
 |---|---|---|
-| `/portal`, `/portal/*` | `portal` | Client portal (Next.js `basePath: '/portal'`) |
-| everything else | `web` | Operator app |
+| Operator | `web` | `NEXT_PUBLIC_OTHER_APP_URL` = the portal's address |
+| Client portal | `portal` | `NEXT_PUBLIC_OTHER_APP_URL` = the operator app's address |
 
-The apps never call each other; they only share the data store, so no service bindings are needed.
+Leave `PORTAL_BASE_PATH` unset, so the portal is served at its own root.
+The root `vercel.json` is ignored in this layout.
 
-1. **Vercel → Add New → Project →** import the repo with the Root Directory left at the repo root. Deploy.
-2. **Storage → Create → Upstash for Redis** (free tier) and connect it to the project.
-   This adds `KV_REST_API_URL` and `KV_REST_API_TOKEN`; both apps switch to Redis automatically.
-3. Redeploy so they pick up the new settings.
+### One Vercel project (`vercel.json` at the repo root)
 
-Without step 2 each app keeps its own temporary data, so changes won't cross over.
-Supabase also works: set `HORIZON_STORE=supabase`, `SUPABASE_URL` and
-`SUPABASE_SERVICE_ROLE_KEY`, and run `supabase/migrations/0002_prototype_state.sql`.
-On Vercel the demo panel's "open the other app" link uses `/` and `/portal`;
-`NEXT_PUBLIC_OTHER_APP_URL` only applies locally. Locally the portal is at http://localhost:3001/portal.
+Root Directory left at the repo root. `/portal` and `/portal/*` go to the portal service,
+everything else to the operator app. Set **`PORTAL_BASE_PATH=/portal`** on the project.
 
-Note: hofund-intel's rules require approval for new Vercel projects and repos
-under Hofund accounts. Add password protection or SSO before sharing widely.
+### Shared data (either layout)
+
+Both apps must point at the same store, or changes won't cross over:
+
+- **Upstash Redis**: set `KV_REST_API_URL` and `KV_REST_API_TOKEN` (the Vercel Marketplace adds them).
+  Both apps switch to Redis automatically.
+- **Supabase**: set `HORIZON_STORE=supabase`, `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`,
+  and run `supabase/migrations/0002_prototype_state.sql`.
+
+Without either, each app keeps its own temporary copy.
+There's no login yet: add Vercel password protection or SSO before sharing widely.
 
 ## Going from prototype to product
 
